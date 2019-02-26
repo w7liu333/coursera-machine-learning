@@ -1,0 +1,66 @@
+---
+title: 'Peer-graded Assignment: Prediction Assignment Writeup'
+author: "Wei-Ting Liu"
+date: "2/25/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+
+## Introduction
+The basic goal of this assignment is to predict the manner of the subject (6 participants) performed some exercise. Moodels using decision tree and random forest methods will be built and evaluated for prediction accuracy.
+
+## Load data and processing
+```{r}
+setwd("N:\\Wei-Ting\\Biostatistics\\coursera")
+url_train="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+url_test="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(url_train,destfile="training_data.csv")
+download.file(url_test,destfile="testing_data.csv")
+library(readr)
+training<-read.csv("N:\\Wei-Ting\\Biostatistics\\coursera\\training_data.csv",na.strings = c("NA", "#DIV/0!", ""))
+testing <- read.csv("N:\\Wei-Ting\\Biostatistics\\coursera\\testing_data.csv",na.strings = c("NA", "#DIV/0!", ""))
+# Removing columns that contains NA values and irrelevant variables
+training <- training[, which(colSums(is.na(training)) == 0)] 
+testing <- testing[, which(colSums(is.na(testing)) == 0)]
+## Removing the first 7 columns since they have no relationship with "class"
+training <- training[,-c(1:7)] 
+testing <- testing[,-c(1:7)]
+```
+
+## Partioning the training set into training and crossvalidation datasets
+```{r}
+library(caret)
+set.seed(123)
+training = data.frame(training)
+inTrain <- createDataPartition(training$classe, p=0.70, list=F)
+training.data <- training[inTrain, ]
+validaion.data <- training[-inTrain, ]
+```
+
+## Modelling with regression tree (using rpart method)
+```{r}
+fit1 <- train(classe ~ ., method = "rpart", data = training.data)
+pred1 <- predict(fit1, newdata = validaion.data)
+confusionMatrix(pred1, validaion.data$classe)
+library(rattle)
+fancyRpartPlot(fit1$finalModel)
+```
+
+## Modelling with random forest (using rf method)
+```{r}
+fit2 <- train(classe ~ ., method="rf", data = training.data)
+pred2 <- predict(fit2, newdata = validaion.data)
+confusionMatrix(pred2, validaion.data$classe)
+```
+## Summary
+From the result, random forest based model althrough much time and resource-consuming has much better accuracy. Therefore we will use model fit2 to answer the quiz question in the assignement.
+
+## Prediction
+```{r}
+pred <- predict(fit2, newdata = testing)
+pred
+```
